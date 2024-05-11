@@ -28,5 +28,5 @@ def page_not_found(e):
     return jsonify({'error': 'API not found.', 'app_identifier': app_identifier}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
  
