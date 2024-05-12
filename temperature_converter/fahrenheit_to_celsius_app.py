@@ -21,8 +21,13 @@ def convert_fahrenheit_to_celsius():
         return jsonify({'celsius': celsius_temp, 'app_identifier': app_identifier}), 200
     except ValueError:
         return jsonify({'error': 'Invalid input. Please provide a valid Fahrenheit temperature.', 'app_identifier': app_identifier}), 400
-
-
+    
+    
+@app.route('/api/healthcheck', methods=['GET'])
+def healthcheck():
+    return jsonify({'app_identifier': app_identifier}), 200
+    
+    
 @app.errorhandler(404)
 def page_not_found(e):
     return jsonify({'error': 'API not found.', 'app_identifier': app_identifier}), 404

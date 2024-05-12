@@ -1,0 +1,33 @@
+image:
+  repository: kacperpap/temperature_converter
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 200m
+  requests:
+    cpu: 100m
+
+livenessProbe:
+  httpGet:
+    path: /api/healthcheck
+    port: 5000
+  initialDelaySeconds: 5
+
+readinessProbe:
+  httpGet:
+    path: /api/healthcheck
+    port: 5000
+  initialDelaySeconds: 5
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80

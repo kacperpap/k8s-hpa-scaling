@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "temp_conv_charts.fullname" . }}
+  labels:
+    {{- include "temp_conv_charts.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "temp_conv_charts.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "temp_conv_charts.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "temp_conv_charts.fullname" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+    

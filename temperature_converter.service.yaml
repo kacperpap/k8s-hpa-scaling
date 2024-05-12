@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temperature-converter
+  labels:
+    app.temperature-converter/name: temperature-converter
+    app.temperature-converter/instance: fahrenheit-to-celsius
+    app.temperature-converter/component: backend
+spec:
+  selector:
+    app.temperature-converter/name: temperature-converter
+    app.temperature-converter/instance: fahrenheit-to-celsius
+    app.temperature-converter/component: backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: ClusterIP

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temperature-converter
+spec:
+  selector:
+    matchLabels:
+      app.temperature-converter/name: temperature-converter
+      app.temperature-converter/instance: fahrenheit-to-celsius
+      app.temperature-converter/component: backend
+  template:
+    metadata:
+      labels:
+        app.temperature-converter/name: temperature-converter
+        app.temperature-converter/instance: fahrenheit-to-celsius
+        app.temperature-converter/component: backend
+    spec:
+      containers:
+        - name: temperature-converter
+          image: kacperpap/temperature_converter:0.1.0
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: 200m
