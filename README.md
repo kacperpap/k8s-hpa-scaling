@@ -366,3 +366,88 @@ helm install <helm-chart-local-name> <helm-chart-location> --set service.port=<p
 
 Test this as in :
 [https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/)
+
+
+
+
+
+**WHAT MORE**
+
+
+# Performance testing of k8s cluster with locust
+
+- [x] Use a locust as a client for your app. Build a docker image and a helm chart to run a
+performance test at the k8s cluster. Run the client for 5 minutes. You can find
+instructions here https://docs.locust.io/en/stable/running-in-docker.html
+
+Using locust clinet for performance testing via docker container can be done as presented in this article: [https://medium.com/locust-io-experiments/locust-io-experiments-running-in-docker-cae3c7f9386e](https://medium.com/locust-io-experiments/locust-io-experiments-running-in-docker-cae3c7f9386e). 
+
+Using this author's docker file we can run locust container with multiple parameters. Moreover thanks to writing a bash script that executes as a CMD in dockerfile, we can pass testing parameters as **run time parameters**, while passing them straightforward to docker image would create a build time params. Below there are specified params:  
+
+```
+| Variable               | Description                                       | Default       | Example            |
+|------------------------|---------------------------------------------------|---------------|--------------------|
+|LOCUST_FILE             | Sets the `--locustfile` option.                   | locustfile.py |                    |
+|ATTACKED_HOST           | The URL to test. Required.                        | -             | http://example.com |
+|LOCUST_MODE             | Set the mode to run in. Can be                    | standalone    | master             |
+|                        | `standalone`, `master` or `slave`.                |               |                    |
+|LOCUST_MASTER           | Locust master IP or hostname.                     | -             | 127.0.0.1          |
+|                        | Required for `slave` mode.                        |               |                    |
+|LOCUST_MASTER_BIND_PORT | Locust master port for communication with slaves. | 5557          | 6666               |
+|                        | Used in distributed mode.                         |               |                    |
+|                        | For master: which port master should bind to.     |               |                    |
+|                        | For slave: port to connect on master.             |               |                    |
+|LOCUST_OPTS             | Additional locust CLI options.                    | -             | "-c 10 -r 10"      |
+```
+
+To test our `temperature-converter` app after installing it by helm chart run the following command:
+```
+docker run --rm --name standalone --hostname standalone `
+-e ATTACKED_HOST=http://<APP_SERVICE_IP:CONTAINER_PORT> `
+-v <PATH_TO_DIR_WITH_LOCUSTFILE>:/locust `
+-p 8089:8089 -d `
+grubykarol/locust
+```
+
+The APP_SERVICE_IP is the ip adress of our app's service that is running inside k8s, CONTAINER_PORT is the port exposed by a container with the app, that can be configured during installing helm chart by:
+```bash
+helm install temperatue-converter <.\temp_conv_charts\> --set service.port=1234
+``` 
+PATH_TO_DIR_WITH_LOCUSTFILE is the directory path with included `locustfile.py` defining the testing scenario.
+
+For that purpose I create [locustfile.py](./locust_client/locustfile.py):
+```python
+from locust import HttpUser, task, between
+import random
+
+
+class MyUser(HttpUser):
+    wait_time = between(1,2)
+    
+    @task(10)
+    def convert_fahrenheit_to_celsius(self):
+        fahrenheit_temp = random.uniform(-100, 100)
+
+        response = self.client.get(f"/api/convert-fahrenheit-to-celsius?fahrenheit={fahrenheit_temp}")
+
+    @task
+    def healthcheck(self):
+        response = self.client.get("/api/healthcheck")
+```
+It creates MyUser class by inheriting from library class HttpUser, and defines that the user will make an API call once for a 1 to 2 seconds. The propotions of sending user's request will be 10:1 for defined APIs.
+
+After running test with 1000 users and spawning rate 10 users/sec our HPA scaler (first part of the charts are testing with 100 users and 1 spawn rate which was fully efficent), scales our app to defined max 5 replicas (scaling reason: CPU target):
+![locust-test-scaling](./screenshots/locust-test-scaling.png)
+
+Results shown in locust charts:
+![total-req](./screenshots/total_requests_per_second_1716890007.png)
+
+![res-time](./screenshots/response_times_(ms)_1716890007.png)
+
+![number-of-users](./screenshots/number_of_users_1716890007.png)
+
+
+Above charts suggest, that application after appearing about 500 users starts to rapdily slow down. The 95% percentile metric (95% of request is responsed within or below time shown on chart) peeks and the response per seconds stops to grow steadily (system cannot increse responses per sec). After that we can see degradation of system performance and 4 "hills" that are created during creation of new pods by autoscalers. HPA scales pods but too much ineficcient to restore the sensible performacne. In order to create better siuted system for such load, I change the temeprature-converter helm values:
+```
+helm upgrade temperatue-converter <.\temp_conv_charts\> --set autoscaling.maxReplicas=8 --set targetCPUUtilizationPercentage=40
+```

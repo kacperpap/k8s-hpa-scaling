@@ -1,8 +1,8 @@
-{{- if contains "ClusterIP" .Values.service.type }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.temperature-converter/name={{ include "temp_conv_charts.fullname" . }},app.temperature-converter/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
-  echo "Aplikacja została uruchomiona."
-  echo "Aby użyć aplikacji, wykonaj poniższe polecenie port-forwarding:"
-  echo "kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 80:$CONTAINER_PORT"
-{{- end }}
+NOTES:
+{{- printf "export POD_NAME=$(kubectl get pods --namespace default -l \"app.temperature-converter/name=temperature-converter,app.temperature-converter/instance=temperatue-converter\" -o jsonpath=\"{.items[0].metadata.name}\")\n" -}}
+{{- printf "export CONTAINER_PORT=$(kubectl get pod --namespace default $POD_NAME -o jsonpath=\"{.spec.containers[0].ports[0].containerPort}\")\n" -}}
+{{- printf "echo \"Aplikacja została uruchomiona.\"\n" -}}
+{{- printf "echo \"Aby użyć aplikacji, wykonaj poniższe polecenie port-forwarding:\"\n" -}}
+{{- printf "kubectl --namespace default port-forward $POD_NAME 80:$CONTAINER_PORT\n" -}}
+
 
