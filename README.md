@@ -1,4 +1,4 @@
-# MLOpsInterviewTask
+# Scaling sample web app with Horizontal Pod Autoscaler in k8s
 
 # **1. fahrenheit_to_celsius_app backend in Flask**
 
